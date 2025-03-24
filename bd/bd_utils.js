@@ -1,24 +1,23 @@
 const Database = require('better-sqlite3');
 
-var bd = new Database('./bd/esmforum.db');
+let db = new Database('./bd/esmforum.db', { verbose: console.log });
 
-function reconfig(nome) {
-  bd = new Database(nome);
+function reconfig(novo_caminho) {
+  db = new Database(novo_caminho, { verbose: console.log });
 }
 
-function query(query, params) {
-  return bd.prepare(query).get(params);
-}
+module.exports = {
+  reconfig,
 
-function queryAll(query, params) {
-  return bd.prepare(query).all(params);
-}
+  exec(query, params = []) {
+    return db.prepare(query).run(...params);
+  },
 
-function exec(statement, params) {
-  bd.prepare(statement).run(params);
-}
+  query(query, params = []) {
+    return db.prepare(query).get(...params);
+  },
 
-exports.reconfig = reconfig;
-exports.query = query;
-exports.queryAll = queryAll;
-exports.exec = exec;
+  queryAll(query, params = []) {
+    return db.prepare(query).all(...params);
+  }
+};
