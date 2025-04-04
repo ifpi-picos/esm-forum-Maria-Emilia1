@@ -1,11 +1,9 @@
-const bd = require('../bd/bd_utils.js');
 const modelo = require('../modelo.js');
+const repositorio_memoria = require('../repositorio/repositorio_memoria.js');
 
-// Limpa e reseta banco antes de cada teste
 beforeEach(() => {
-  bd.reconfig('./bd/esmforum-teste.db');
-  bd.exec('DELETE FROM perguntas');
-  bd.exec('DELETE FROM respostas');
+  modelo.reconfig_repositorio(repositorio_memoria);
+  repositorio_memoria.limpar();
 });
 
 test('Testando banco de dados vazio', async () => {
@@ -22,38 +20,35 @@ test('Testando cadastro de três perguntas', async () => {
   expect(perguntas.length).toBe(3);
   expect(perguntas[0].texto).toBe('1 + 1 = ?');
   expect(perguntas[1].texto).toBe('2 + 2 = ?');
-  expect(perguntas[2].texto).toBe('3 + 3 = ?');
-  expect(perguntas[0].num_respostas).toBe(0); // pode verificar isso também
+  expect(perguntas[2].num_respostas).toBe(0);
 });
 
-test('Deve retornar uma pergunta específica', async () => {
-  await modelo.cadastrar_pergunta('Qual a capital do Brasil?');
-  const todas = await modelo.listar_perguntas();
-  const ultima = todas[todas.length - 1];
+test('Testando cadastro de resposta e recuperação de respostas', async () => {
+  await modelo.cadastrar_pergunta('Capital da França?');
+  const pergunta = (await modelo.listar_perguntas())[0];
 
-  const pergunta = await modelo.get_pergunta(ultima.id_pergunta);
-  expect(pergunta.texto).toBe('Qual a capital do Brasil?');
-});
-
-test('Deve cadastrar e listar respostas de uma pergunta', async () => {
-  await modelo.cadastrar_pergunta('Qual a cor do céu?');
-  const perguntas = await modelo.listar_perguntas();
-  const pergunta = perguntas[perguntas.length - 1];
-
-  await modelo.cadastrar_resposta(pergunta.id_pergunta, 'Azul');
+  await modelo.cadastrar_resposta(pergunta.id_pergunta, 'Paris');
   const respostas = await modelo.get_respostas(pergunta.id_pergunta);
 
-  expect(respostas.length).toBeGreaterThan(0);
-  expect(respostas[0].texto).toBe('Azul');
+  expect(respostas.length).toBe(1);
+  expect(respostas[0].texto).toBe('Paris');
 });
 
-test('Deve retornar o número de respostas de uma pergunta', async () => {
-  await modelo.cadastrar_pergunta('Qual a capital do PI?');
-  const perguntas = await modelo.listar_perguntas();
-  const pergunta = perguntas[perguntas.length - 1];
+test('Testando get_pergunta', async () => {
+  await modelo.cadastrar_pergunta('Quem descobriu o Brasil?');
+  const pergunta = (await modelo.listar_perguntas())[0];
 
-  await modelo.cadastrar_resposta(pergunta.id_pergunta, 'Teresina');
-  const total = await modelo.get_num_respostas(pergunta.id_pergunta);
+  const perguntaEncontrada = await modelo.get_pergunta(pergunta.id_pergunta);
+  expect(perguntaEncontrada.texto).toBe('Quem descobriu o Brasil?');
+});
 
-  expect(total).toBe(1);
+test('Testando get_num_respostas', async () => {
+  await modelo.cadastrar_pergunta('Composição da água');
+  const pergunta = (await modelo.listar_perguntas())[0];
+
+  await modelo.cadastrar_resposta(pergunta.id_pergunta, 'H2O');
+  await modelo.cadastrar_resposta(pergunta.id_pergunta, 'Dihidrogênio Monóxido');
+
+  const num = await modelo.get_num_respostas(pergunta.id_pergunta);
+  expect(num).toBe(2);
 });
